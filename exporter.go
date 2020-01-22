@@ -50,6 +50,7 @@ type Exporter struct {
 }
 
 type ExporterOptions struct {
+	Username            string
 	Password            string
 	Namespace           string
 	ConfigCommandName   string
@@ -1105,7 +1106,7 @@ func (e *Exporter) connectToRedis() (redis.Conn, error) {
 		}),
 	}
 
-	if e.options.Password != "" {
+	if e.options.Password != "" && e.options.Username == "" {
 		options = append(options, redis.DialPassword(e.options.Password))
 	}
 
@@ -1123,6 +1124,11 @@ func (e *Exporter) connectToRedis() (redis.Conn, error) {
 		} else {
 			log.Debugf("Trying: Dial(): tcp %s", e.redisAddr)
 			c, err = redis.Dial("tcp", e.redisAddr, options...)
+		}
+	}
+	if err == nil && c != nil {
+		if e.options.Password != "" && e.options.Username != "" {
+			_, err = c.Do("AUTH", e.options.Username, e.options.Password)
 		}
 	}
 	return c, err
